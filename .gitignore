@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Models (large files)
+models/*.onnx
+models/*.bin
+models/*.tar.bz2
+models/sherpa-*/
+
+# Temp files
+/tmp/voice_norm_*
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env (contain secrets)
+.env
+.env.*
+!.env.example
