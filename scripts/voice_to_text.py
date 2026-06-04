@@ -28,9 +28,12 @@ def convert_to_wav(input_path: str, output_path: str) -> bool:
         output_path
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, timeout=60)
         return result.returncode == 0
     except subprocess.TimeoutExpired:
+        return False
+    except FileNotFoundError:
+        print("❌ ffmpeg 未安装", file=sys.stderr)
         return False
 
 

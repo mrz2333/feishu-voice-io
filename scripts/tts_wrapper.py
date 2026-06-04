@@ -51,7 +51,7 @@ def tts_piper(text: str, output: str, model: str = None) -> bool:
     cmd = ["piper", "--model", model, "--output_file", output]
     try:
         result = subprocess.run(
-            cmd, input=text, capture_output=True, text=True, timeout=30
+            cmd, input=text, capture_output=True, text=True, timeout=60
         )
         return result.returncode == 0
     except FileNotFoundError:
@@ -76,7 +76,7 @@ def tts_mimo(text: str, output: str, url: str = None) -> bool:
         return False
 
     try:
-        resp = requests.post(url, json={"text": text}, timeout=30)
+        resp = requests.post(url, json={"text": text}, timeout=60)
         if resp.status_code == 200:
             with open(output, "wb") as f:
                 f.write(resp.content)
@@ -84,6 +84,9 @@ def tts_mimo(text: str, output: str, url: str = None) -> bool:
         else:
             print(f"❌ MIMO TTS HTTP {resp.status_code}", file=sys.stderr)
             return False
+    except requests.exceptions.Timeout:
+        print("❌ MIMO TTS 超时", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"❌ MIMO TTS 错误: {e}", file=sys.stderr)
         return False

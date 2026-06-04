@@ -89,7 +89,7 @@ def convert_to_opus(input_path: str, output_path: str) -> bool:
         output_path
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, timeout=60)
         return result.returncode == 0
     except subprocess.TimeoutExpired:
         print("❌ ffmpeg 转换超时", file=sys.stderr)
@@ -114,14 +114,17 @@ def send_feishu_voice(opus_path: str, receive_id: str) -> dict:
         return {"ok": False, "error": f"飞书输出解析失败: {result.stdout[:200]}"}
 
 
-def cleanup_temp_dirs():
-    """清理临时目录。"""
-    import glob
-    for d in glob.glob("/tmp/voice_norm_*"):
+def check_dependencies():
+    """检查必要的外部依赖。"""
+    missing = []
+    for cmd in ["ffmpeg"]:
         try:
-            shutil.rmtree(d, ignore_errors=True)
+            subprocess.run([cmd, "-version"], capture_output=True, timeout=5)
+        except FileNotFoundError:
+            missing.append(cmd)
         except Exception:
             pass
+    return missing
 
 
 def main():
@@ -159,6 +162,13 @@ def main():
     if env_errors:
         for e in env_errors:
             print(f"❌ {e}", file=sys.stderr)
+        return 1
+
+    # 检查依赖
+    dep_missing = check_dependencies()
+    if dep_missing:
+        for d in dep_missing:
+            print(f"❌ 缺少依赖: {d}", file=sys.stderr)
         return 1
 
     if not args.receive_id:
@@ -207,7 +217,10 @@ def main():
         print(f"\n📤 Step 4: 发送飞书", file=sys.stderr)
         send_result = send_feishu_voice(opus_path, args.receive_id)
         if send_result.get("ok"):
-            msg_id = send_result["send"]["data"]["message_id"]
+            # 防御性解析 message_id
+            send_data = send_result.get("send", {})
+            msg_data = send_data.get("data", {})
+            msg_id = msg_data.get("message_id", "unknown")
             print("   ✅ 发送成功!", file=sys.stderr)
             print(f"   📨 message_id: {msg_id}", file=sys.stderr)
 
@@ -226,7 +239,6 @@ def main():
     finally:
         if not args.keep_temp:
             shutil.rmtree(tmpdir, ignore_errors=True)
-            cleanup_temp_dirs()
         else:
             print(f"📁 临时文件保留在: {tmpdir}", file=sys.stderr)
 
